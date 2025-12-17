@@ -80,30 +80,52 @@
     </table>
 
     <script>
-
         const API_URL = '/produtos';
 
+        let idEdicao = null;
+        let listaProdutos = [];
+
         async function carregarProduto() {
-            const resposta = await fetch(API_URL);
-            const produtos = await resposta.json();
+            try {
+                const resposta = await fetch(API_URL);
 
-            const tabela = document.getElementById('tabela-corpo');
-            tabela.innerHTML = '';
+                listaProdutos = await resposta.json();
 
-            produtos.forEach(produto => {
-                const linha = `
-                    <tr>
-                        <td>${produto.id}</td>
-                        <td>${produto.nome}</td>
-                        <td>R$ ${produto.preco.toFixed(2)}</td>
-                        <td>${produto.quantidade}</td>
-                        <td>
-                            <button class="btn-delete" onclick="deletarProduto(${produto.id})">Excluir</button>    
-                        </td>
-                    </tr>
-                `;
-                tabela.innerHTML += linha;
-            });
+                const tabela = document.getElementById('tabela-corpo');
+                tabela.innerHTML = '';
+
+                listaProdutos.forEach(produto => {
+                    const linha = `
+                        <tr>
+                            <td>${produto.id}</td>
+                            <td>${produto.nome}</td>
+                            <td>R$ ${produto.preco.toFixed(2)}</td>
+                            <td>${produto.quantidade}</td>
+                            <td>
+                                <button onclick="preencherFormulario(${produto.id})">Editar</button>
+
+                                <button class="btn-delete" onclick="deletarProduto(${produto.id})">Excluir</button>    
+                            </td>
+                        </tr>
+                    `;
+                    tabela.innerHTML += linha;
+                });
+                } catch (error) {
+                    console.error("Erro ao carregar", error);
+                }
+            }
+
+        function preencherFormulario(id) {
+            const produtoEncontrado = listaProdutos.find(p => p.id === id);
+
+            if (produtoEncontrado) {
+                document.getElementById('nome').value = produtoEncontrado.nome;
+                document.getElementById('preco').value = produtoEncontrado.preco;
+
+                document.getElementById('quantidade').value = produtoEncontrado.quantidade;
+
+                idEdicao = id;
+            }        
         }
 
         async function cadastrarProduto() {
@@ -117,11 +139,21 @@
                 quantidade: parseInt(quantidadeInput.value)
             };
 
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: {'Content-type': 'application/json'},
-                body: JSON.stringify(produto)
-            });
+            if (idEdicao !== null) {
+                await fetch(`${API_URL}/${idEdicao}`, {
+                    method: 'PUT',
+                    headers: {'Content-type': 'application/json'},
+                    body: JSON.stringify(produto)
+                });
+
+                idEdicao = null;
+            } else {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {'Content-type': 'application/json'},
+                    body: JSON.stringify(produto)
+                });
+            }
 
             nomeInput.value = '';
             precoInput.value = '';
